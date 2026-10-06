@@ -1,0 +1,68 @@
+import numpy as np
+
+np.random.seed(42)
+
+def objective_function(x):
+    target_zone1 = 40.0
+    target_zone2 = 45.0
+    
+    water_waste = 0.1 * (max(0, x[0] - target_zone1)**2 + max(0, x[1] - target_zone2)**2)
+    crop_stress = 0.5 * (max(0, target_zone1 - x[0])**2 + max(0, target_zone2 - x[1])**2)
+    duration_penalty = 0.05 * (x[2] - 2.0)**2
+    
+    total_cost = water_waste + crop_stress + duration_penalty
+    return total_cost
+
+num_particles = 25
+max_iterations = 30
+dimensions = 3
+
+lb = np.array([20.0, 20.0, 0.5])
+ub = np.array([60.0, 60.0, 5.0])
+
+positions = np.random.uniform(lb, ub, (num_particles, dimensions))
+velocities = np.random.uniform(-1, 1, (num_particles, dimensions))
+
+p_best_positions = positions.copy()
+p_best_scores = np.array([objective_function(p) for p in positions])
+
+g_best_index = np.argmin(p_best_scores)
+g_best_position = p_best_positions[g_best_index].copy()
+g_best_score = p_best_scores[g_best_index]
+
+w = 0.5
+c1 = 1.5
+c2 = 1.5
+
+print("Starting Particle Swarm Optimization for Agricultural Monitoring...\n")
+
+for iteration in range(max_iterations):
+    for i in range(num_particles):
+        r1, r2 = np.random.rand(2)
+        
+        velocities[i] = (w * velocities[i] + 
+                         c1 * r1 * (p_best_positions[i] - positions[i]) + 
+                         c2 * r2 * (g_best_position - positions[i]))
+        
+        positions[i] += velocities[i]
+        positions[i] = np.clip(positions[i], lb, ub)
+        
+        current_score = objective_function(positions[i])
+        
+        if current_score < p_best_scores[i]:
+            p_best_scores[i] = current_score
+            p_best_positions[i] = positions[i].copy()
+            
+            if current_score < g_best_score:
+                g_best_score = current_score
+                g_best_position = positions[i].copy()
+                
+    if (iteration + 1) % 5 == 0 or iteration == 0:
+        print(f"Iteration {iteration+1:02d}/{max_iterations} -> Best Cost Error: {g_best_score:.4f}")
+
+print("\nOptimization Complete!")
+print("Optimal Agricultural Monitoring Configuration Found:")
+print(f"  - Zone 1 Soil Moisture Target Threshold : {g_best_position[0]:.2f}%")
+print(f"  - Zone 2 Soil Moisture Target Threshold : {g_best_position[1]:.2f}%")
+print(f"  - Optimal Irrigation Duration Factor    : {g_best_position[2]:.2f} hours")
+print(f"  - Minimum Optimized Cost Score          : {g_best_score:.4f}")
