@@ -1,0 +1,73 @@
+import numpy as np
+import random
+
+np.random.seed(42)
+random.seed(42)
+
+num_cities = 8
+cities = np.random.rand(num_cities, 2) * 100
+
+def calculate_distance(route):
+    dist = 0
+    for i in range(len(route)):
+        city1 = cities[route[i]]
+        city2 = cities[route[(i + 1) % len(route)]]
+        dist += np.linalg.norm(city1 - city2)
+    return dist
+
+pop_size = 50
+generations = 100
+mutation_rate = 0.1
+
+population = [np.random.permutation(num_cities) for _ in range(pop_size)]
+
+def selection(pop):
+    fitnesses = [calculate_distance(route) for route in pop]
+    tournament_size = 5
+    selected = []
+    for _ in range(len(pop)):
+        aspirants = random.sample(list(zip(pop, fitnesses)), tournament_size)
+        best = min(aspirants, key=lambda x: x[1])
+        selected.append(best[0].copy())
+    return selected
+
+def crossover(parent1, parent2):
+    size = len(parent1)
+    start, end = sorted(random.sample(range(size), 2))
+    child = [-1] * size
+    child[start:end+1] = parent1[start:end+1]
+    
+    pointer = 0
+    for gene in parent2:
+        if gene not in child:
+            while child[pointer] != -1:
+                pointer += 1
+            child[pointer] = gene
+    return np.array(child)
+
+def mutate(route):
+    if random.random() < mutation_rate:
+        i, j = random.sample(range(len(route)), 2)
+        route[i], route[j] = route[j], route[i]
+    return route
+
+for gen in range(generations):
+    selected_pop = selection(population)
+    next_pop = []
+    
+    for i in range(0, pop_size, 2):
+        p1 = selected_pop[i]
+        p2 = selected_pop[(i + 1) % pop_size]
+        c1 = crossover(p1, p2)
+        c2 = crossover(p2, p1)
+        next_pop.append(mutate(c1))
+        next_pop.append(mutate(c2))
+        
+    population = next_pop
+
+best_route = min(population, key=calculate_distance)
+best_distance = calculate_distance(best_route)
+
+print("Route Optimization Complete!")
+print("Best Route (City Indices):", list(best_route))
+print(f"Minimum Total Route Distance: {best_distance:.2f}")
